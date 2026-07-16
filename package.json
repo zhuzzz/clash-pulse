@@ -1,10 +1,10 @@
 {
-  "name": "clash-refresh-node",
+  "name": "clash-pulse",
   "version": "1.0.0",
   "description": "Trigger a Clash delay check and auto-select the lowest-latency matching node via the external-controller API.",
   "type": "module",
   "bin": {
-    "clash-refresh": "index.js"
+    "clash-pulse": "index.js"
   },
   "scripts": {
     "start": "node index.js",

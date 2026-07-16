@@ -1,29 +1,41 @@
-# clash-refresh-node
+# ClashPulse
 
-Triggers a Clash **Delay check**, filters nodes by a name keyword, and switches to the **lowest-latency matching node**. It is the scripted equivalent of clicking the dashboard's delay-check button and then choosing the fastest node by hand.
+一键检测 Clash/Mihomo 节点延迟，按名称过滤候选节点，并自动切换到延迟最低的节点。无需打开 Clash Dashboard 手动刷新和选择。
 
-It drives the Clash / mihomo [external-controller REST API](https://en.clash.wiki/runtime/external-controller.html) directly (the same API the web dashboard uses), so it works headlessly and doesn't depend on the dashboard UI.
+## 核心功能
 
-## How it works
+- 一条命令完成节点测速与自动切换
+- 支持节点名称关键字和正则表达式过滤
+- 支持排除测试、过期或特定类型节点
+- 自动忽略超时和不可达节点
+- 支持最大延迟限制
+- 支持只测速不切换的 `dry-run`
+- 支持定时自动检测
+- 直接调用 Clash/Mihomo External Controller API，不依赖界面自动化
 
-1. `GET /proxies` — read the group and its member nodes.
-2. **Delay check** the candidates:
-   - mihomo: `GET /group/:name/delay` (tests the whole group at once), or
-   - Clash Premium fallback: `GET /proxies/:name/delay` per node, in parallel.
-3. Filter members by name (default `日本|JP|Japan`), rank by latency.
-4. `PUT /proxies/:group {"name": "<fastest>"}` — switch the Selector to the winner.
+## 工作方式
 
-## Setup
+1. 通过 `GET /proxies` 获取代理分组及其节点。
+2. 按 `filter` 和 `exclude` 筛选候选节点。
+3. 优先调用 Mihomo 分组延迟检测接口；不可用时并行检测每个候选节点。
+4. 按延迟排序，忽略失败或超过 `maxDelay` 的节点。
+5. 通过 `PUT /proxies/:group` 将 Selector 切换到最低延迟节点。
 
-Requires Node.js ≥ 18 (uses the built-in `fetch`). No dependencies.
+## 环境要求
 
-Create a private local configuration first:
+- Node.js 18 或更高版本
+- Clash/Mihomo 已启用 External Controller API
+- 菜单栏可视化仅支持 macOS 13 或更高版本
+
+## 安装
 
 ```bash
+git clone https://github.com/zhuzzz/clash-pulse.git
+cd clash-pulse
 cp config.example.json config.json
 ```
 
-Then edit `config.json`:
+编辑本机 `config.json`：
 
 ```json
 {
@@ -40,52 +52,101 @@ Then edit `config.json`:
 }
 ```
 
-- `controller` / `secret` — your external-controller address and API secret. Find them in your Clash config under `external-controller` / `secret`.
-- `group` — the Selector group to control (your dashboard shows `Proxy`).
-- `filter` — regex for node names to consider. `exclude` removes matches (e.g. exclude test nodes with `TEST`).
-- `maxDelay` — if > 0, ignore nodes slower than this (ms).
-- `config.json` is ignored by Git because it may contain a Controller secret. Only commit `config.example.json`.
-- Remote Controllers must use HTTPS. `allowInsecureRemote` is an explicit opt-out for trusted private networks; it sends the Bearer secret without transport encryption.
-
-## Usage
+## 一键检测并切换
 
 ```bash
-node index.js              # run once
-node index.js --dry-run    # report the fastest node without switching
-node index.js --watch      # keep refreshing every watchInterval seconds
-node index.js --group Proxy --keyword "日本"               # literal keyword
-node index.js --group Proxy --filter "日本|JP" --exclude TEST # regular expressions
+node index.js
 ```
 
-Config precedence: `config.json` < env (`CLASH_CONTROLLER`, `CLASH_SECRET`, `CLASH_GROUP`, `CLASH_FILTER`) < CLI flags. Avoid passing secrets as CLI arguments because they can be saved in shell history and exposed in the process list.
+示例输出：
 
-## macOS 一键触发
+```text
+355 ms  日本-OS-1-流量倍率:1.0
+654 ms  日本-TY-4-流量倍率:1.0
+779 ms  日本-TY-1-流量倍率:1.0
 
-首次使用先编辑 `config.json`，确认 Clash/Mihomo 已开启 `external-controller`，然后测试：
+✓ Selected 日本-OS-1-流量倍率:1.0 (355 ms)
+```
+
+### 常用命令
+
+```bash
+# 只检测并报告最快节点，不执行切换
+node index.js --dry-run
+
+# 使用普通名称关键字
+node index.js --group Proxy --keyword "日本"
+
+# 使用正则表达式包含多个地区，并排除测试节点
+node index.js --group Proxy --filter "日本|JP|新加坡|SG" --exclude "TEST|过期"
+
+# 每隔 watchInterval 秒重新检测并切换
+node index.js --watch
+```
+
+也可以安装为全局命令：
+
+```bash
+npm link
+clash-pulse --keyword "日本"
+```
+
+配置优先级：`config.json` < 环境变量 < CLI 参数。
+
+支持的环境变量：
+
+- `CLASH_CONTROLLER`
+- `CLASH_SECRET`
+- `CLASH_GROUP`
+- `CLASH_FILTER`
+
+密钥建议保存在已被 Git 忽略的 `config.json` 中，不要作为 CLI 参数传递，避免进入 shell 历史和进程列表。
+
+## 配置说明
+
+| 配置项 | 说明 |
+| --- | --- |
+| `controller` | Clash/Mihomo External Controller 地址 |
+| `secret` | Controller API 密钥；没有密钥时留空 |
+| `group` | 需要控制的 Selector 分组名称 |
+| `filter` | 节点名称包含规则，支持正则表达式 |
+| `exclude` | 节点名称排除规则，支持正则表达式 |
+| `testUrl` | 延迟检测使用的目标地址 |
+| `timeout` | 单个节点检测超时，单位毫秒 |
+| `maxDelay` | 最大可接受延迟；`0` 表示不限制 |
+| `watchInterval` | `--watch` 模式的检测间隔，单位秒 |
+| `allowInsecureRemote` | 是否允许通过 HTTP 连接非本机 Controller |
+
+`config.json` 可能包含密钥，已被 Git 忽略。公开仓库中只提交 `config.example.json`。远程 Controller 建议使用 HTTPS。
+
+## macOS 菜单栏可视化（可选）
+
+菜单栏插件是核心切换功能的可选可视化界面，用于随时查看当前节点和最近一次延迟。它不会取代一键测速切换逻辑。
+
+![ClashPulse 菜单栏延迟可视化](assets/clash-pulse-menu.png)
+
+它提供：
+
+- 每 10 秒检测一次当前节点并更新延迟显示
+- “立即重新检测”当前节点
+- 执行相同的候选节点检测与最快节点切换流程
+- 显示当前节点名称和上次检测时间
+
+安装并启动：
+
+```bash
+./macos/install-app.sh
+open "$HOME/Applications/ClashPulse.app"
+```
+
+菜单栏插件需要 Xcode Command Line Tools。修改 `config.json` 后，需要重新执行安装脚本并重启插件。
+
+## 测试
 
 ```bash
 npm test
-node index.js --dry-run
 ```
 
-有两种一键方式：
+## License
 
-1. **直接双击**：在 Finder 中双击 `macos/clash-refresh.command`，执行一次全量测速和切换。
-2. **安装为菜单栏 App**：运行下面的命令，之后右上角会常驻显示当前节点延迟：
-
-```bash
-chmod +x macos/*.sh macos/*.command
-./macos/install-app.sh
-```
-
-菜单栏延迟每 10 秒采样一次，只测试当前节点，不会自动切换。点击延迟可查看当前节点和上次检测时间，并可选择“立即重新检测”或“检测全部并切换最快节点”。
-
-要设置全局快捷键：打开 macOS「快捷指令」→ 新建快捷指令 → 添加“打开 App”动作 → 选择 **Clash Fastest Node** → 在详情中勾选“用作快速操作”并设置键盘快捷键。App 已经运行时，再次打开会执行全量测速并切换最快节点。
-
-安装时会把当前 `config.json` 以仅当前用户可读的权限复制进 App。修改配置后请重新执行 `./macos/install-app.sh`，然后退出并重开 App。
-
-日志保存在 `$TMPDIR/clash-refresh-node.log`。如果 Clash 的 Controller 使用了密钥，请只把它写在本机 `config.json` 中；该文件已被 `.gitignore` 排除。
-
-## Run it on a schedule
-
-`--watch` keeps the process alive and re-selects the fastest Japan node on an interval. Or wire `node index.js` into cron / launchd for a periodic refresh.
+[MIT](LICENSE)

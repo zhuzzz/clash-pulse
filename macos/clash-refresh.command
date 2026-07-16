@@ -4,7 +4,7 @@ set -u
 
 SCRIPT_DIR="${0:A:h}"
 PROJECT_DIR="${SCRIPT_DIR:h}"
-LOG_FILE="${TMPDIR:-/tmp}/clash-refresh-node.log"
+LOG_FILE="${TMPDIR:-/tmp}/clash-pulse.log"
 
 find_node() {
   local candidate

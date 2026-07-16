@@ -141,7 +141,7 @@
         if (!nodes.count) { [self finishSwitch:@"没有匹配过滤条件的节点" success:NO]; return; }
 
         dispatch_group_t group = dispatch_group_create();
-        dispatch_queue_t lockQueue = dispatch_queue_create("com.local.clash-fastest-node.results", DISPATCH_QUEUE_SERIAL);
+        dispatch_queue_t lockQueue = dispatch_queue_create("com.local.clash-pulse.results", DISPATCH_QUEUE_SERIAL);
         NSMutableArray<NSDictionary *> *results = [NSMutableArray new];
         for (NSString *node in nodes) {
             dispatch_group_enter(group);

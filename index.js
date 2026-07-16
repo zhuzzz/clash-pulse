@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * clash-refresh-node
+ * clash-pulse
  *
  * Triggers a Clash/mihomo "Delay check" on a proxy group, then automatically
  * selects the lowest-latency node matching a filter (default: Japan nodes).
@@ -286,7 +286,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
   if (flags.help || flags.h) {
-    console.log(`clash-refresh-node — auto-select the fastest matching node
+    console.log(`clash-pulse — auto-select the fastest matching node
 
   node index.js                 run once (uses config.json)
   node index.js --watch         keep refreshing every <watchInterval> seconds

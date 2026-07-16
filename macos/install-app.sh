@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="${0:A:h}"
 PROJECT_DIR="${SCRIPT_DIR:h}"
-DESTINATION="${1:-$HOME/Applications/Clash Fastest Node.app}"
+DESTINATION="${1:-$HOME/Applications/ClashPulse.app}"
 
 DESTINATION="${DESTINATION:A}"
 DESTINATION_PARENT="${DESTINATION:h}"
@@ -31,7 +31,7 @@ mkdir -p "$DESTINATION_PARENT"
 rm -rf "$DESTINATION"
 mkdir -p "$DESTINATION/Contents/MacOS" "$DESTINATION/Contents/Resources"
 export CLANG_MODULE_CACHE_PATH="${TMPDIR:-/tmp}/clash-refresh-clang-cache"
-clang -fobjc-arc -fmodules "$SCRIPT_DIR/ClashMenuBar.m" -o "$DESTINATION/Contents/MacOS/ClashFastestNode" -framework Cocoa -framework UserNotifications
+clang -fobjc-arc -fmodules "$SCRIPT_DIR/ClashMenuBar.m" -o "$DESTINATION/Contents/MacOS/ClashPulse" -framework Cocoa -framework UserNotifications
 cp "$SCRIPT_DIR/clash-refresh.command" "$DESTINATION/Contents/Resources/"
 CONFIG_SOURCE="$PROJECT_DIR/config.json"
 [[ -f "$CONFIG_SOURCE" ]] || CONFIG_SOURCE="$PROJECT_DIR/config.example.json"
@@ -39,10 +39,10 @@ cp "$CONFIG_SOURCE" "$DESTINATION/Contents/Resources/config.json"
 chmod 600 "$DESTINATION/Contents/Resources/config.json"
 
 plutil -create xml1 "$DESTINATION/Contents/Info.plist"
-plutil -insert CFBundleName -string "Clash Fastest Node" "$DESTINATION/Contents/Info.plist"
-plutil -insert CFBundleDisplayName -string "Clash Fastest Node" "$DESTINATION/Contents/Info.plist"
-plutil -insert CFBundleIdentifier -string "com.local.clash-fastest-node" "$DESTINATION/Contents/Info.plist"
-plutil -insert CFBundleExecutable -string "ClashFastestNode" "$DESTINATION/Contents/Info.plist"
+plutil -insert CFBundleName -string "ClashPulse" "$DESTINATION/Contents/Info.plist"
+plutil -insert CFBundleDisplayName -string "ClashPulse" "$DESTINATION/Contents/Info.plist"
+plutil -insert CFBundleIdentifier -string "com.local.clash-pulse" "$DESTINATION/Contents/Info.plist"
+plutil -insert CFBundleExecutable -string "ClashPulse" "$DESTINATION/Contents/Info.plist"
 plutil -insert CFBundlePackageType -string "APPL" "$DESTINATION/Contents/Info.plist"
 plutil -insert CFBundleInfoDictionaryVersion -string "6.0" "$DESTINATION/Contents/Info.plist"
 plutil -insert CFBundleDevelopmentRegion -string "en" "$DESTINATION/Contents/Info.plist"
@@ -56,8 +56,7 @@ plutil -insert NSUserNotificationAlertStyle -string "banner" "$DESTINATION/Conte
 sed -i '' "s|PROJECT_DIR=\"\${SCRIPT_DIR:h}\"|PROJECT_DIR=\"$PROJECT_DIR\"|" "$DESTINATION/Contents/Resources/clash-refresh.command"
 chmod +x "$DESTINATION/Contents/Resources/clash-refresh.command"
 
-# Updating Info.plist invalidates osacompile's original signature. Re-sign so
-# macOS notification permissions can consistently identify this bundle ID.
+# Sign after generating Info.plist so macOS can consistently identify the App.
 codesign --force --deep --sign - "$DESTINATION"
 
 # Make the generated app immediately discoverable by Spotlight and Shortcuts.
