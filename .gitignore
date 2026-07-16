@@ -1,0 +1,9 @@
+# Local configuration may contain the Clash controller secret.
+config.json
+
+# Local tools and generated artifacts.
+.claude/
+.DS_Store
+node_modules/
+*.app/
+*.log

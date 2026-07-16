@@ -1,0 +1,12 @@
+{
+  "controller": "http://127.0.0.1:9090",
+  "secret": "",
+  "group": "Proxy",
+  "filter": "日本|JP|Japan",
+  "exclude": "",
+  "testUrl": "http://www.gstatic.com/generate_204",
+  "timeout": 5000,
+  "maxDelay": 0,
+  "watchInterval": 300,
+  "allowInsecureRemote": false
+}
